@@ -1,0 +1,5 @@
+Hello world this is a test file
+This file has multiple lines
+Testing word count and line count
+The pattern hello should match some lines
+Another line without the keyword
