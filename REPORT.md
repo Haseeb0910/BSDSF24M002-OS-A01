@@ -64,3 +64,81 @@ This separates two different things a project can distribute:
 For this feature, the release at tag `v0.1.1-multifile` includes the
 compiled `bin/client`, so anyone can grab a working binary directly
 from the Releases page rather than building from source.
+
+## Feature 3: Static Library
+
+### 1. Makefile differences for library creation
+
+Building a static library requires two new things beyond the multi-file
+build's rules:
+
+1. A separate object list that excludes `main.o`, since the library
+   should only contain the reusable utility functions, not the driver
+   program:
+
+       LIB_SRCS = $(SRC_DIR)/mystrfunctions.c $(SRC_DIR)/myfilefunctions.c
+       LIB_OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(LIB_SRCS))
+
+2. A rule that archives those object files into `libmyutils.a` instead
+   of linking them into an executable:
+
+       $(STATIC_LIB): $(LIB_OBJS)
+           ar rcs $(STATIC_LIB) $(LIB_OBJS)
+           ranlib $(STATIC_LIB)
+
+3. A separate link rule for the executable that links against the
+   library rather than the raw object files, using `-L` (library
+   search path) and `-l` (library name):
+
+       $(STATIC_TARGET): $(OBJ_DIR)/main.o $(STATIC_LIB)
+           $(CC) $(OBJ_DIR)/main.o -L$(LIB_DIR) -lmyutils -o $(STATIC_TARGET)
+
+The core difference from Feature 2: instead of one link step that
+consumes all object files at once, there are now two stages — archive,
+then link against the archive.
+
+### 2. Purpose of ar and ranlib
+
+`ar` (archiver) bundles multiple `.o` object files into a single `.a`
+archive file, without compression — conceptually similar to a `.zip`
+but for object files specifically. The flags used, `rcs`:
+- `r` — insert/replace the given files in the archive
+- `c` — create the archive if it doesn't already exist
+- `s` — write a symbol index into the archive
+
+`ranlib` generates (or regenerates) that same symbol index for an
+existing archive. The index maps each symbol (function) to the object
+file inside the archive that defines it, so the linker can find the
+right `.o` to pull in without scanning every object file in the
+archive sequentially. Modern `ar rcs` already includes this indexing
+(the `s` flag does what `ranlib` does), so running `ranlib` afterward
+is redundant in practice but demonstrates the tool explicitly.
+
+### 3. Symbol analysis with nm
+
+Running `nm lib/libmyutils.a` shows each function from both source
+files as type `T`, meaning defined in the text (code) section, e.g.:
+
+    mystrfunctions.o:
+    0000000000000000 T str_reverse
+    000000000000023f T str_count_char
+
+    myfilefunctions.o:
+    0000000000000000 T file_word_count
+    00000000000000a9 T file_line_count
+
+External functions the code calls but doesn't define (like `strlen`,
+`fopen`, `printf`) show as `U` (undefined) — expected, since those
+come from libc, not this library.
+
+Running `nm bin/client_static` on the final linked executable shows
+the same functions (`str_reverse`, `file_word_count`, etc.) now with
+type `T` inside the executable itself, not `U`. This confirms static
+linking actually happened — the linker physically copied the object
+code from the archive into the executable, rather than just recording
+a reference to it. Interestingly, standard library functions like
+`printf` and `fopen` still show as `U` with a `@GLIBC_...` version tag,
+because only `libmyutils.a` was statically linked — glibc itself is
+still linked dynamically, which is normal default behavior on Linux.
+
+Comparing
