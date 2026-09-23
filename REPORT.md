@@ -142,3 +142,85 @@ because only `libmyutils.a` was statically linked — glibc itself is
 still linked dynamically, which is normal default behavior on Linux.
 
 Comparing
+
+## Feature 4: Dynamic Library
+
+### 1. Position-Independent Code (PIC) requirements
+
+A shared library can be loaded at a different memory address in every
+program that uses it, and even at a different address on different
+runs of the same program (due to address space layout randomization).
+Regular compiled code can contain absolute memory addresses baked in
+at compile time — which breaks if the code doesn't end up loaded where
+the compiler assumed it would be.
+
+Position-Independent Code solves this by having the compiler generate
+code that only uses addresses *relative* to the current instruction
+pointer, rather than absolute addresses. This is enabled with the
+`-fPIC` flag at compile time. In this project, PIC object files were
+built separately from the regular ones (`.pic.o` instead of `.o`) so
+the static build (which doesn't need PIC) and the dynamic build (which
+requires it) don't interfere with each other's object files:
+
+    $(OBJ_DIR)/%.pic.o: $(SRC_DIR)/%.c
+        $(CC) $(CFLAGS) $(PIC_FLAGS) -c $< -o $@
+
+The shared library itself is then produced with the `-shared` flag:
+
+    $(DYNAMIC_LIB): $(PIC_OBJS)
+        $(CC) -shared -o $(DYNAMIC_LIB) $(PIC_OBJS)
+
+### 2. Executable size differences
+
+For this project, all three executables — `client` (multi-file),
+`client_static`, and `client_dynamic` — came out to the same size
+(17K). This is not the typical textbook result of "dynamic is
+smaller," and it's worth explaining why:
+
+The size benefit of dynamic linking comes from *not duplicating*
+library code across many executables, or *not embedding* a large
+library into one binary. `libmyutils` is very small — a handful of
+short utility functions — so the actual code being included-or-not
+only amounts to a few hundred bytes either way. That difference is
+dwarfed by the fixed overhead every ELF executable carries regardless
+of linking method (ELF headers, section tables, and — for the dynamic
+build specifically — additional dynamic linking metadata like the
+`.dynamic` section, PLT/GOT entries, and symbol tables needed to
+resolve the library at runtime).
+
+In other words: at this small scale, the extra bookkeeping the dynamic
+build needs to carry outweighs the code it saves by not embedding the
+library. Real-world size benefits of shared libraries appear with
+much larger libraries (e.g. glibc itself, shared system-wide across
+every program) or executables linking against many libraries at once
+— not a small custom library like this one.
+
+### 3. LD_LIBRARY_PATH and the dynamic loader
+
+Running `client_dynamic` without any setup produced:
+
+    error while loading shared libraries: libmyutils.so:
+    cannot open shared object file: No such file or directory
+
+This happens because a dynamically linked executable does not contain
+the library's code — only a reference saying it needs `libmyutils.so`
+at runtime. Before `main()` runs, a separate program, the dynamic
+loader (`ld.so`), searches a specific set of directories for that
+library. Since `libmyutils.so` lives in this project's own `lib/`
+folder — not a directory the loader checks by default — it failed to
+find it.
+
+Setting `LD_LIBRARY_PATH` tells the loader to check that directory
+first, before its default system paths:
+
+    export LD_LIBRARY_PATH=$PWD/lib:$LD_LIBRARY_PATH
+
+Running `ldd bin/client_dynamic` afterward confirmed the library was
+now correctly resolved:
+
+    libmyutils.so => .../lib/libmyutils.so (0x...)
+    libc.so.6 => /usr/lib/x86_64-linux-gnu/libc.so.6 (0x...)
+
+`ldd` lists every shared library dependency of an executable and shows
+whether the dynamic loader can currently resolve it — a useful tool
+for diagnosing exactly this kind of missing-library error.
