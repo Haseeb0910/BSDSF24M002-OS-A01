@@ -1,0 +1,30 @@
+.TH STR_REVERSE 3 "September 2026" "libmyutils" "Library Functions Manual"
+.SH NAME
+str_reverse \- reverse a string in place
+.SH SYNOPSIS
+.nf
+.B #include "mystrfunctions.h"
+.sp
+.BI "void str_reverse(char *" str );
+.fi
+.SH DESCRIPTION
+The
+.B str_reverse()
+function reverses the string pointed to by
+.I str
+in place, using a two-pointer swap technique. The string must be
+null-terminated and mutable (not a string literal).
+.SH RETURN VALUE
+This function does not return a value. The input string is modified
+directly.
+.SH EXAMPLE
+.nf
+char str[] = "Hello";
+str_reverse(str);
+/* str is now "olleH" */
+.fi
+.SH AUTHOR
+Haseeb
+.SH SEE ALSO
+.BR str_to_upper (3),
+.BR str_to_lower (3)

@@ -19,7 +19,12 @@ STATIC_TARGET = $(BIN_DIR)/client_static
 DYNAMIC_LIB = $(LIB_DIR)/libmyutils.so
 DYNAMIC_TARGET = $(BIN_DIR)/client_dynamic
 
-.PHONY: all clean static dynamic
+PREFIX = /usr/local
+INSTALL_BIN = $(PREFIX)/bin
+INSTALL_LIB = $(PREFIX)/lib
+INSTALL_MAN = $(PREFIX)/share/man/man3
+
+.PHONY: all clean static dynamic install uninstall
 
 all: $(TARGET)
 
@@ -51,6 +56,21 @@ $(DYNAMIC_LIB): $(PIC_OBJS)
 
 $(DYNAMIC_TARGET): $(OBJ_DIR)/main.o $(DYNAMIC_LIB)
 	$(CC) $(OBJ_DIR)/main.o -L$(LIB_DIR) -lmyutils -o $(DYNAMIC_TARGET)
+
+install: $(DYNAMIC_TARGET)
+	install -d $(INSTALL_BIN)
+	install -m 755 $(DYNAMIC_TARGET) $(INSTALL_BIN)/client
+	install -d $(INSTALL_LIB)
+	install -m 755 $(DYNAMIC_LIB) $(INSTALL_LIB)
+	install -d $(INSTALL_MAN)
+	install -m 644 man/man3/*.3 $(INSTALL_MAN)
+	ldconfig
+
+uninstall:
+	rm -f $(INSTALL_BIN)/client
+	rm -f $(INSTALL_LIB)/libmyutils.so
+	rm -f $(addprefix $(INSTALL_MAN)/, $(notdir $(wildcard man/man3/*.3)))
+	ldconfig
 
 clean:
 	rm -f $(OBJ_DIR)/*.o $(BIN_DIR)/* $(LIB_DIR)/*.a $(LIB_DIR)/*.so

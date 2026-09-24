@@ -1,0 +1,22 @@
+.TH FILE_WORD_COUNT 3 "September 2026" "libmyutils" "Library Functions Manual"
+.SH NAME
+file_word_count \- count words in a file
+.SH SYNOPSIS
+.nf
+.B #include "myfilefunctions.h"
+.sp
+.BI "int file_word_count(const char *" filename );
+.fi
+.SH DESCRIPTION
+The
+.B file_word_count()
+function opens
+.I filename
+and counts the number of whitespace-separated words in it.
+.SH RETURN VALUE
+Returns the word count on success, or \-1 if the file could not be opened.
+.SH AUTHOR
+Haseeb
+.SH SEE ALSO
+.BR file_line_count (3),
+.BR file_search_pattern (3)

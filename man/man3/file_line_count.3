@@ -1,0 +1,21 @@
+.TH FILE_LINE_COUNT 3 "September 2026" "libmyutils" "Library Functions Manual"
+.SH NAME
+file_line_count \- count lines in a file
+.SH SYNOPSIS
+.nf
+.B #include "myfilefunctions.h"
+.sp
+.BI "int file_line_count(const char *" filename );
+.fi
+.SH DESCRIPTION
+The
+.B file_line_count()
+function opens
+.I filename
+and counts the number of newline characters in it.
+.SH RETURN VALUE
+Returns the line count on success, or \-1 if the file could not be opened.
+.SH AUTHOR
+Haseeb
+.SH SEE ALSO
+.BR file_word_count (3)

@@ -1,0 +1,25 @@
+.TH STR_TRIM 3 "September 2026" "libmyutils" "Library Functions Manual"
+.SH NAME
+str_trim \- remove leading and trailing whitespace from a string
+.SH SYNOPSIS
+.nf
+.B #include "mystrfunctions.h"
+.sp
+.BI "void str_trim(char *" str );
+.fi
+.SH DESCRIPTION
+The
+.B str_trim()
+function removes leading and trailing whitespace from
+.I str
+in place, shifting the trimmed content to the beginning of the buffer.
+.SH RETURN VALUE
+This function does not return a value.
+.SH EXAMPLE
+.nf
+char str[] = "  hello  ";
+str_trim(str);
+/* str is now "hello" */
+.fi
+.SH AUTHOR
+Haseeb

@@ -1,0 +1,27 @@
+.TH STR_TO_LOWER 3 "September 2026" "libmyutils" "Library Functions Manual"
+.SH NAME
+str_to_lower \- convert a string to lowercase in place
+.SH SYNOPSIS
+.nf
+.B #include "mystrfunctions.h"
+.sp
+.BI "void str_to_lower(char *" str );
+.fi
+.SH DESCRIPTION
+The
+.B str_to_lower()
+function converts every character in
+.I str
+to lowercase, in place.
+.SH RETURN VALUE
+This function does not return a value.
+.SH EXAMPLE
+.nf
+char str[] = "HELLO";
+str_to_lower(str);
+/* str is now "hello" */
+.fi
+.SH AUTHOR
+Haseeb
+.SH SEE ALSO
+.BR str_to_upper (3)
