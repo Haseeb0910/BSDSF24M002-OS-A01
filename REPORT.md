@@ -141,7 +141,10 @@ a reference to it. Interestingly, standard library functions like
 because only `libmyutils.a` was statically linked — glibc itself is
 still linked dynamically, which is normal default behavior on Linux.
 
-Comparing
+Comparing `bin/client` (Feature 2) and `bin/client_static` (Feature 3),
+both come out to 17K — nearly identical size, since the same object
+code ends up embedded in the executable either way; archiving it first
+doesn't change the final linked size meaningfully.
 
 ## Feature 4: Dynamic Library
 
@@ -224,3 +227,62 @@ now correctly resolved:
 `ldd` lists every shared library dependency of an executable and shows
 whether the dynamic loader can currently resolve it — a useful tool
 for diagnosing exactly this kind of missing-library error.
+
+## Feature 5: Documentation & Installation
+
+### 1. Man pages (groff formatting)
+
+Man pages are written in **groff**, using the `man` macro package —
+a much terser markup than Markdown, built around dot-commands. Each
+function got its own page in `man/man3/`, section 3 being specifically
+for library calls (as opposed to section 1 for shell commands or
+section 2 for system calls). Key macros used:
+
+- `.TH` — title header (name, section, date, source, manual category)
+- `.SH` — section heading (NAME, SYNOPSIS, DESCRIPTION, etc.)
+- `.B` / `.I` / `.BI` — bold / italic / alternating bold-italic text,
+  used for formatting function signatures
+- `.nf` / `.fi` — turns automatic line-wrapping off/on, used to
+  preserve formatting in code examples
+- `.BR` — alternating bold-roman, used for `SEE ALSO` cross-references
+
+Pages were tested locally with `man -l <file>.3` before installing,
+which previews a page without needing it to be in a system man path.
+
+### 2. Install target
+
+The Makefile's `install` target copies build outputs to standard
+system locations under `/usr/local` (the conventional prefix for
+manually-installed, non-package-manager software):
+
+    install: $(DYNAMIC_TARGET)
+        install -d $(INSTALL_BIN)
+        install -m 755 $(DYNAMIC_TARGET) $(INSTALL_BIN)/client
+        install -d $(INSTALL_LIB)
+        install -m 755 $(DYNAMIC_LIB) $(INSTALL_LIB)
+        install -d $(INSTALL_MAN)
+        install -m 644 man/man3/*.3 $(INSTALL_MAN)
+        ldconfig
+
+The `install` command (distinct from the Makefile target of the same
+name) copies files with explicit permissions in one step: `755`
+(read/write/execute for owner, read/execute for others) for the
+executable and shared library, `644` (read/write for owner, read-only
+for others) for man pages, since they don't need to be executable.
+
+Both the executable and `libmyutils.so` needed to be installed
+together — installing only the binary would reproduce the same
+"cannot open shared object file" error from Feature 4, just system-wide
+instead of local to the project directory.
+
+`ldconfig` is run after installing the library so the system's shared
+library cache is refreshed immediately, letting the dynamic loader
+find `libmyutils.so` in `/usr/local/lib` without needing
+`LD_LIBRARY_PATH` set manually. After running `sudo make install`,
+both `client` and `man str_reverse` worked correctly from any
+directory, with no environment variable required — confirming the
+library was now resolvable through the system's standard search path.
+
+An `uninstall` target reverses all of this, removing the installed
+binary, library, and man pages, and re-running `ldconfig` to refresh
+the cache again.
