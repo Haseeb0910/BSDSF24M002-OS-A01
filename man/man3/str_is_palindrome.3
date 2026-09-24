@@ -1,0 +1,26 @@
+.TH STR_IS_PALINDROME 3 "September 2026" "libmyutils" "Library Functions Manual"
+.SH NAME
+str_is_palindrome \- check whether a string is a palindrome
+.SH SYNOPSIS
+.nf
+.B #include "mystrfunctions.h"
+.sp
+.BI "int str_is_palindrome(const char *" str );
+.fi
+.SH DESCRIPTION
+The
+.B str_is_palindrome()
+function checks whether
+.I str
+reads the same forwards and backwards.
+.SH RETURN VALUE
+Returns 1 if
+.I str
+is a palindrome, 0 otherwise.
+.SH EXAMPLE
+.nf
+int result = str_is_palindrome("madam");
+/* result is 1 */
+.fi
+.SH AUTHOR
+Haseeb
